@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1620">
+<title>Le Mur des Mitsvot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Alegreya:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     PALETTE — thème « lapidaire » (pierre gravée, bronze patiné)
+     Choisie pour éviter le look générique crème/terracotta.
+     ------------------------------------------------------------ */
+  :root{
+    --nuit:#0f1620;         /* fond pierre, nuit froide            */
+    --nuit-2:#1c2836;       /* dégradé haut                        */
+    --calcaire:#dcd4c4;     /* pierre claire des tuiles            */
+    --calcaire-omb:#b6ab95; /* ombre gravée                        */
+    --grave:#2b2318;        /* texte gravé (brun profond)          */
+    --or:#c9a24b;           /* incision dorée / accents            */
+    --jade:#4a8c7a;         /* porte « À FAIRE » (bronze verdi)    */
+    --jade-clair:#6fb7a0;
+    --brique:#a24a3c;       /* porte « À ÉVITER » (cuivre oxydé)   */
+    --brique-clair:#c9705f;
+    --clair:#efe8da;        /* texte clair sur fond nuit           */
+    --estompe:#8a94a1;      /* texte secondaire                    */
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0;}
+  body{
+    font-family:'Alegreya', Georgia, serif;
+    background:
+      radial-gradient(120% 90% at 50% -10%, var(--nuit-2), var(--nuit) 60%);
+    color:var(--clair);
+    overflow:hidden;
+    user-select:none; -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+
+  /* Cadre central : ressemble à un « écran » posé, joli aussi sur grand PC */
+  #cadre{
+    position:relative;
+    width:100%; max-width:520px;
+    height:100dvh; max-height:940px;
+    margin:0 auto;
+    display:flex; flex-direction:column;
+    border-left:1px solid rgba(201,162,75,.14);
+    border-right:1px solid rgba(201,162,75,.14);
+    background:linear-gradient(180deg, rgba(28,40,54,.35), transparent 25%);
+  }
+
+  /* ---------- BANDEAU HAUT ---------- */
+  #hud{
+    display:flex; align-items:center; gap:.4rem;
+    padding:.7rem .9rem .5rem;
+  }
+  #hud .titre{
+    font-family:'Cinzel', serif; font-weight:700;
+    font-size:.95rem; letter-spacing:.14em;
+    color:var(--or); flex:1; line-height:1;
+  }
+  .jauge{
+    font-family:'Cinzel', serif; font-size:.72rem; letter-spacing:.08em;
+    color:var(--estompe); text-align:center; min-width:52px;
+  }
+  .jauge b{ display:block; font-size:1.05rem; color:var(--clair); letter-spacing:.02em;}
+  #vies{ letter-spacing:.05em; font-size:1rem; min-width:auto;}
+  #btn-son{
+    background:none; border:1px solid rgba(201,162,75,.3); color:var(--or);
+    border-radius:8px; width:34px; height:34px; font-size:1rem; cursor:pointer;
+    display:grid; place-items:center;
+  }
+
+  /* barre de combo / progression du niveau */
+  #barre-nv{ height:4px; margin:0 .9rem; background:rgba(255,255,255,.08); border-radius:99px; overflow:hidden;}
+  #barre-nv > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--or),var(--jade-clair)); transition:width .25s ease;}
+
+  /* ---------- ZONE DE CHUTE ---------- */
+  #zone{
+    position:relative; flex:1; min-height:0;
+    margin:.6rem .6rem .2rem;
+    border:1px dashed rgba(201,162,75,.18);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  #consigne{
+    position:absolute; top:8px; left:0; right:0; text-align:center;
+    font-size:.78rem; color:var(--estompe); font-style:italic; letter-spacing:.02em;
+    pointer-events:none;
+  }
+
+  /* La tuile-commandement qui tombe */
+  .tuile{
+    position:absolute; left:50%; top:0; transform:translateX(-50%);
+    width:min(84%, 340px);
+    background:linear-gradient(180deg, var(--calcaire), var(--calcaire-omb));
+    color:var(--grave);
+    border-radius:12px;
+    padding:.85rem .9rem .7rem;
+    box-shadow:0 10px 22px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 4px rgba(0,0,0,.18);
+    text-align:center;
+    will-change:top;
+  }
+  .tuile .ref{
+    font-family:'Cinzel', serif; font-size:.62rem; letter-spacing:.14em;
+    color:#7c6a49; text-transform:uppercase; margin-bottom:.25rem;
+  }
+  .tuile .txt{ font-size:1.08rem; line-height:1.25; font-weight:500;}
+  .tuile.juste{ animation:flashJuste .25s ease;}
+  .tuile.faux{ animation:secousse .3s ease;}
+  @keyframes flashJuste{ 0%{filter:brightness(1)} 40%{filter:brightness(1.35)} 100%{filter:brightness(1)} }
+  @keyframes secousse{ 0%,100%{transform:translateX(-50%)} 25%{transform:translate(-58%)} 75%{transform:translate(-42%)} }
+
+  /* petit indicateur de temps sous la tuile */
+  .fumee{ position:absolute; font-size:1.5rem; opacity:0; pointer-events:none;}
+  @keyframes monte{ 0%{opacity:1; transform:translate(-50%,0)} 100%{opacity:0; transform:translate(-50%,-60px)} }
+
+  /* ---------- LES DEUX PORTES (tri) ---------- */
+  #portes{ display:flex; gap:.5rem; padding:.2rem .6rem .5rem;}
+  .porte{
+    flex:1; border:none; cursor:pointer; color:var(--clair);
+    border-radius:14px; padding:.7rem .5rem;
+    font-family:'Cinzel', serif; letter-spacing:.06em;
+    display:flex; flex-direction:column; align-items:center; gap:.15rem;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.15), 0 6px 14px rgba(0,0,0,.35);
+    transition:transform .06s ease, filter .15s ease;
+  }
+  .porte:active{ transform:translateY(2px) scale(.99);}
+  .porte .grand{ font-size:1.02rem; font-weight:700;}
+  .porte .petit{ font-size:.66rem; letter-spacing:.03em; opacity:.85; font-family:'Alegreya',serif; font-style:italic;}
+  #porte-pos{ background:linear-gradient(180deg,var(--jade),#3a6f60);}
+  #porte-neg{ background:linear-gradient(180deg,var(--brique),#873a2f);}
+  .porte.vise{ filter:brightness(1.25);}
+
+  /* ---------- LE MUR (élément signature) ---------- */
+  #mur-bloc{ padding:.15rem .8rem .6rem;}
+  #mur-legende{ font-size:.66rem; color:var(--estompe); letter-spacing:.06em; text-align:center; margin-bottom:.3rem; font-family:'Cinzel',serif;}
+  #mur{ display:flex; flex-wrap:wrap; gap:3px; justify-content:center; min-height:16px;}
+  .pierre{
+    width:26px; height:13px; border-radius:2px;
+    background:linear-gradient(180deg,var(--calcaire),var(--calcaire-omb));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 2px rgba(0,0,0,.25);
+    animation:pose .3s ease;
+  }
+  @keyframes pose{ from{opacity:0; transform:translateY(-8px) scale(.7)} to{opacity:1; transform:none} }
+
+  /* ---------- ÉCRANS (menu / niveau / fin) ---------- */
+  .ecran{
+    position:absolute; inset:0; z-index:20;
+    background:linear-gradient(180deg, rgba(15,22,32,.94), rgba(15,22,32,.98));
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:1.5rem; gap:.9rem;
+  }
+  .ecran.cache{ display:none;}
+  .ecran h1{
+    font-family:'Cinzel', serif; font-weight:700; margin:0;
+    font-size:1.9rem; letter-spacing:.1em; color:var(--calcaire);
+    text-shadow:0 2px 0 rgba(0,0,0,.4);
+  }
+  .ecran .sous{ color:var(--or); font-family:'Cinzel',serif; letter-spacing:.14em; font-size:.72rem; margin-top:-.5rem;}
+  .ecran p{ color:var(--estompe); max-width:34ch; line-height:1.5; margin:.2rem 0; font-size:.95rem;}
+  .ecran .regle{ font-size:.88rem; color:var(--clair);}
+  .bouton{
+    font-family:'Cinzel', serif; letter-spacing:.08em; font-weight:700;
+    background:linear-gradient(180deg,var(--or),#a5822f); color:#20180a;
+    border:none; border-radius:12px; padding:.8rem 1.8rem; font-size:1rem;
+    cursor:pointer; box-shadow:0 6px 16px rgba(201,162,75,.3);
+    margin-top:.4rem;
+  }
+  .bouton:active{ transform:translateY(2px);}
+  .bouton.mineur{ background:none; border:1px solid rgba(201,162,75,.4); color:var(--or); box-shadow:none;}
+  .anecdote{
+    background:rgba(201,162,75,.08); border:1px solid rgba(201,162,75,.25);
+    border-radius:12px; padding:.9rem 1rem; max-width:36ch;
+  }
+  .anecdote .ref{ font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.14em; color:var(--or); display:block; margin-bottom:.35rem;}
+  .anecdote .cmd{ font-weight:500; color:var(--calcaire); font-size:1.05rem;}
+  .anecdote .quoi{ font-size:.85rem; color:var(--estompe); font-style:italic; margin-top:.4rem;}
+  .score-final{ font-family:'Cinzel',serif; font-size:2.6rem; color:var(--or); line-height:1;}
+  .mini-stats{ display:flex; gap:1.4rem; color:var(--estompe); font-size:.8rem;}
+  .mini-stats b{ display:block; color:var(--clair); font-size:1.15rem; font-family:'Cinzel',serif;}
+  .note-bas{ font-size:.68rem; color:#5d6773; max-width:38ch; line-height:1.5; margin-top:.6rem;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important;}
+    .tuile{ transition:none;}
+  }
+</style>
+</head>
+<body>
+<div id="cadre">
+
+  <!-- BANDEAU -->
+  <div id="hud">
+    <div class="titre">LE MUR DES MITSVOT</div>
+    <div class="jauge">Score<b id="score">0</b></div>
+    <div class="jauge">Niveau<b id="niveau">1</b></div>
+    <div class="jauge" id="vies" title="Vies">❤️❤️❤️</div>
+    <button id="btn-son" aria-label="Activer / couper le son">♪</button>
+  </div>
+  <div id="barre-nv"><i></i></div>
+
+  <!-- ZONE DE CHUTE -->
+  <div id="zone">
+    <div id="consigne">Range chaque parole avant qu'elle ne touche le sol</div>
+  </div>
+
+  <!-- PORTES DE TRI -->
+  <div id="portes">
+    <button class="porte" id="porte-pos" aria-label="À faire, prescription">
+      <span class="grand">↤ À FAIRE</span>
+      <span class="petit">« tu feras » · prescription</span>
+    </button>
+    <button class="porte" id="porte-neg" aria-label="À éviter, interdiction">
+      <span class="grand">À ÉVITER ↦</span>
+      <span class="petit">« tu ne feras pas » · interdiction</span>
+    </button>
+  </div>
+
+  <!-- MUR (signature) -->
+  <div id="mur-bloc">
+    <div id="mur-legende">TON ÉDIFICE — chaque pierre = une parole bien rangée</div>
+    <div id="mur"></div>
+  </div>
+
+  <!-- ÉCRAN ACCUEIL -->
+  <div class="ecran" id="ecran-menu">
+    <h1>Le Mur des Mitsvot</h1>
+    <div class="sous">UN JEU DE TRI INSPIRÉ DE LA TORAH</div>
+    <p>Des paroles de loi descendent une à une. À toi de reconnaître, avant qu'elles ne tombent, s'il s'agit d'une chose <b style="color:var(--jade-clair)">à faire</b> ou d'une chose <b style="color:var(--brique-clair)">à éviter</b>.</p>
+    <p class="regle"><b>Sur téléphone&nbsp;:</b> touche la porte de gauche ou de droite, ou glisse le doigt.<br><b>Sur ordinateur&nbsp;:</b> flèches ← → (ou A / D).</p>
+    <button class="bouton" id="btn-start">Commencer</button>
+    <p class="note-bas">Sélection de 25 commandements universels (éthique, justice, solidarité, sécurité), volontairement paisibles — voir la note du concepteur en bas de la conversation.</p>
+  </div>
+
+  <!-- ÉCRAN NIVEAU -->
+  <div class="ecran cache" id="ecran-niveau">
+    <div class="sous">NIVEAU FRANCHI</div>
+    <h1 id="niveau-titre">Niveau 2</h1>
+    <div class="anecdote" id="anecdote"></div>
+    <button class="bouton" id="btn-continuer">Continuer</button>
+  </div>
+
+  <!-- ÉCRAN FIN -->
+  <div class="ecran cache" id="ecran-fin">
+    <div class="sous">PARTIE TERMINÉE</div>
+    <div class="score-final" id="score-final">0</div>
+    <div class="mini-stats">
+      <div>Niveau<b id="fin-niveau">1</b></div>
+      <div>Meilleure série<b id="fin-combo">0</b></div>
+      <div>Pierres posées<b id="fin-pierres">0</b></div>
+    </div>
+    <button class="bouton" id="btn-rejouer">Rejouer</button>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   LE MUR DES MITSVOT — logique du jeu (JavaScript « vanilla », sans librairie)
+   Tout est commenté en français : tu peux ouvrir ce fichier, lire, et modifier.
+   ========================================================================== */
+
+/* --- 1. LES DONNÉES ---------------------------------------------------------
+   nature : "pos" = prescription (à faire) / "neg" = interdiction (à éviter)
+   Sélection volontairement universelle et paisible (voir note du concepteur). */
+const COMMANDEMENTS = [
+  // ---- À FAIRE (prescriptions) ----
+  {txt:"Honore ton père et ta mère",            ref:"Exode 20:12",     nature:"pos", quoi:"Le seul commandement du Décalogue assorti d'une promesse de longévité."},
+  {txt:"Aime ton prochain comme toi-même",       ref:"Lévitique 19:18", nature:"pos", quoi:"Rabbi Akiva y voyait « le grand principe » de toute la loi."},
+  {txt:"Lève-toi devant les cheveux blancs",     ref:"Lévitique 19:32", nature:"pos", quoi:"Le respect des aînés inscrit noir sur blanc dans le droit."},
+  {txt:"Rends l'objet perdu que tu trouves",     ref:"Deut. 22:1-3",    nature:"pos", quoi:"Feindre de ne pas l'avoir vu est explicitement interdit."},
+  {txt:"Paie l'ouvrier le jour même",            ref:"Deut. 24:14-15",  nature:"pos", quoi:"Avant le coucher du soleil : le salaire du pauvre ne se retient pas."},
+  {txt:"Pose un garde-corps sur ton toit",       ref:"Deut. 22:8",      nature:"pos", quoi:"Peut-être la toute première norme de sécurité du bâtiment !"},
+  {txt:"Renvoie la mère avant de prendre le nid",ref:"Deut. 22:6-7",    nature:"pos", quoi:"Un geste de compassion, même envers un oiseau."},
+  {txt:"Laisse aux pauvres les coins du champ",  ref:"Lévitique 19:9",  nature:"pos", quoi:"Le glanage : un droit social vieux de plus de 3000 ans."},
+  {txt:"Aie des poids et des mesures justes",    ref:"Lévitique 19:36", nature:"pos", quoi:"La probité commerciale érigée en devoir sacré."},
+  {txt:"Établis des juges à tes portes",         ref:"Deut. 16:18",     nature:"pos", quoi:"Fonder une justice accessible dans chaque cité."},
+  {txt:"Laisse reposer la terre la 7ᵉ année",    ref:"Exode 23:10-11",  nature:"pos", quoi:"La jachère sabbatique : un repos... pour le sol lui-même."},
+  {txt:"Ouvre ta main à ton frère dans le besoin",ref:"Deut. 15:7-8",   nature:"pos", quoi:"La tsédaka : donner selon la mesure des besoins."},
+  {txt:"Transmets ces paroles à tes enfants",    ref:"Deut. 6:7",       nature:"pos", quoi:"Enseigner « en tout lieu et en tout temps »."},
+  {txt:"Souviens-toi du jour du repos",          ref:"Exode 20:8",      nature:"pos", quoi:"Un jour sur sept entièrement soustrait au travail."},
+  // ---- À ÉVITER (interdictions) ----
+  {txt:"Ne dérobe pas le bien d'autrui",         ref:"Exode 20:15",     nature:"neg", quoi:"La tradition y lit aussi l'interdit d'enlever une personne."},
+  {txt:"Ne porte pas de faux témoignage",        ref:"Exode 20:16",     nature:"neg", quoi:"La parole mensongère qui peut condamner un innocent."},
+  {txt:"Ne convoite pas ce qui est à autrui",    ref:"Exode 20:17",     nature:"neg", quoi:"Le seul interdit du Décalogue qui vise le cœur, pas l'acte."},
+  {txt:"Ne déplace pas la borne du voisin",      ref:"Deut. 19:14",     nature:"neg", quoi:"Le respect de la limite foncière... déjà là."},
+  {txt:"Ne mets pas d'obstacle devant l'aveugle",ref:"Lévitique 19:14", nature:"neg", quoi:"Lu aussi comme : ne pas induire sciemment autrui en erreur."},
+  {txt:"Ne muselle pas le bœuf qui bat le grain",ref:"Deut. 25:4",      nature:"neg", quoi:"Le bien-être de l'animal jusque dans le travail."},
+  {txt:"Ne retiens pas le salaire jusqu'au matin",ref:"Lévitique 19:13", nature:"neg", quoi:"Le pendant de l'obligation de payer à temps."},
+  {txt:"Ne prête pas à intérêt au pauvre",       ref:"Exode 22:24",     nature:"neg", quoi:"L'interdit de l'usure envers les plus démunis."},
+  {txt:"N'endurcis pas ton cœur devant le besoin",ref:"Deut. 15:9",     nature:"neg", quoi:"Ne pas refuser un prêt à l'approche de la remise des dettes."},
+  {txt:"N'ajoute ni ne retranche à la loi",      ref:"Deut. 4:2",       nature:"neg", quoi:"Bal tossif : préserver l'intégrité du texte transmis."},
+  {txt:"Ne colporte pas de fausse rumeur",       ref:"Exode 23:1",      nature:"neg", quoi:"Contre la diffusion des fausses nouvelles."},
+];
+
+/* --- 2. RÉGLAGES ---------------------------------------------------------- */
+const CFG = {
+  viesDepart: 3,
+  parNiveau: 6,              // bonnes réponses pour monter d'un niveau
+  chuteDepart: 4200,         // durée de chute au niveau 1 (ms)
+  chuteMin: 1500,            // durée de chute minimale (plancher)
+  acceleration: 320,         // ms retirés à chaque niveau
+};
+
+/* --- 3. ÉTAT DU JEU ------------------------------------------------------- */
+const S = {
+  score:0, niveau:1, vies:CFG.viesDepart, combo:0, meilleurCombo:0,
+  pierres:0, bonnesCeNiveau:0,
+  enCours:false, muet:false,
+  paquet:[], tuile:null, tuileEl:null,
+  debut:0, duree:CFG.chuteDepart, raf:0, verrou:false,
+};
+
+/* --- 4. RACCOURCIS DOM ---------------------------------------------------- */
+const $ = (id)=>document.getElementById(id);
+const zone = $("zone");
+const mur = $("mur");
+
+/* --- 5. SON (Web Audio, bips simples et coupables) ------------------------ */
+let audioCtx = null;
+function bip(freq, dur, type){
+  if(S.muet) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type||"sine"; o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+    o.start(); o.stop(audioCtx.currentTime+dur);
+  }catch(e){/* silencieux si le navigateur bloque */}
+}
+const sonJuste  = ()=>{ bip(660,0.10); setTimeout(()=>bip(880,0.12),90); };
+const sonFaux   = ()=>bip(150,0.22,"square");
+const sonNiveau = ()=>{ bip(523,0.1); setTimeout(()=>bip(659,0.1),110); setTimeout(()=>bip(784,0.18),220); };
+
+/* --- 6. UTILITAIRES ------------------------------------------------------- */
+function melange(tab){                 // mélange de Fisher-Yates
+  const t = tab.slice();
+  for(let i=t.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [t[i],t[j]]=[t[j],t[i]]; }
+  return t;
+}
+function tirer(){                       // pioche une carte, réalimente le paquet
+  if(S.paquet.length===0) S.paquet = melange(COMMANDEMENTS);
+  return S.paquet.pop();
+}
+function majHud(){
+  $("score").textContent  = S.score;
+  $("niveau").textContent = S.niveau;
+  $("vies").textContent   = "❤️".repeat(S.vies) + "🖤".repeat(Math.max(0,CFG.viesDepart-S.vies));
+  const pct = Math.min(100, (S.bonnesCeNiveau/CFG.parNiveau)*100);
+  document.querySelector("#barre-nv > i").style.width = pct+"%";
+}
+
+/* --- 7. BOUCLE DE CHUTE --------------------------------------------------- */
+function prochaine(){
+  S.verrou = false;
+  S.tuile = tirer();
+  const el = document.createElement("div");
+  el.className = "tuile";
+  el.innerHTML = `<div class="ref">${S.tuile.ref}</div><div class="txt">${S.tuile.txt}</div>`;
+  zone.appendChild(el);
+  S.tuileEl = el;
+  S.debut = performance.now();
+  cancelAnimationFrame(S.raf);
+  S.raf = requestAnimationFrame(tomber);
+}
+function tomber(now){
+  if(!S.enCours || !S.tuileEl) return;
+  const prog = (now - S.debut) / S.duree;                 // 0 -> 1
+  const h = zone.clientHeight - S.tuileEl.offsetHeight - 6;
+  S.tuileEl.style.top = Math.max(0, prog*h) + "px";
+  if(prog >= 1){ rater(); return; }                       // touché le sol
+  S.raf = requestAnimationFrame(tomber);
+}
+
+/* --- 8. TRI PAR LE JOUEUR ------------------------------------------------- */
+function trier(choix){                                     // choix = "pos" | "neg"
+  if(!S.enCours || !S.tuile || S.verrou) return;
+  S.verrou = true;
+  cancelAnimationFrame(S.raf);
+  const bon = (choix === S.tuile.nature);
+  if(bon) reussir(); else echouer(false);
+}
+function reussir(){
+  sonJuste();
+  S.tuileEl.classList.add("juste");
+  // points : base + bonus de vitesse + bonus de série
+  const reste = 1 - (performance.now()-S.debut)/S.duree;
+  const gain = 10 + Math.round(reste*10) + S.combo*2;
+  S.score += gain; S.combo++; S.meilleurCombo = Math.max(S.meilleurCombo, S.combo);
+  S.bonnesCeNiveau++; S.pierres++;
+  poserPierre();
+  fumee(S.combo>1 ? `+${gain} · x${S.combo}` : `+${gain}`, "var(--jade-clair)");
+  finTuile(()=>{ if(S.bonnesCeNiveau>=CFG.parNiveau) monterNiveau(); else prochaine(); });
+}
+function echouer(rate){
+  sonFaux();
+  S.tuileEl.classList.add("faux");
+  S.combo = 0; S.vies--;
+  const bonneReponse = S.tuile.nature==="pos" ? "À FAIRE" : "À ÉVITER";
+  fumee(rate ? "trop tard !" : `c'était : ${bonneReponse}`, "var(--brique-clair)");
+  finTuile(()=>{ if(S.vies<=0) terminer(); else prochaine(); });
+}
+function rater(){ S.verrou = true; echouer(true); }
+
+function finTuile(suite){
+  majHud();
+  const el = S.tuileEl; S.tuileEl = null; S.tuile = null;
+  setTimeout(()=>{ if(el) el.remove(); suite(); }, 480);
+}
+
+/* petit texte volant au-dessus des portes */
+function fumee(txt, couleur){
+  const f = document.createElement("div");
+  f.className = "fumee"; f.textContent = txt;
+  f.style.left = "50%"; f.style.bottom = "6px"; f.style.color = couleur;
+  f.style.font = "600 .95rem 'Cinzel', serif";
+  f.style.animation = "monte 1s ease forwards";
+  zone.appendChild(f);
+  setTimeout(()=>f.remove(), 1000);
+}
+
+/* --- 9. LE MUR (élément signature) --------------------------------------- */
+function poserPierre(){
+  const p = document.createElement("div");
+  p.className = "pierre";
+  mur.appendChild(p);
+  if(mur.children.length > 33) mur.removeChild(mur.firstChild); // on garde 2-3 rangées
+}
+
+/* --- 10. NIVEAUX & FIN ---------------------------------------------------- */
+function monterNiveau(){
+  S.niveau++;
+  S.bonnesCeNiveau = 0;
+  S.duree = Math.max(CFG.chuteMin, CFG.chuteDepart - (S.niveau-1)*CFG.acceleration);
+  sonNiveau();
+  // carte « le saviez-vous » = la dernière parole rangée
+  const a = S.tuile || COMMANDEMENTS[Math.floor(Math.random()*COMMANDEMENTS.length)];
+  $("niveau-titre").textContent = "Niveau " + S.niveau;
+  $("anecdote").innerHTML =
+    `<span class="ref">${a.ref}</span><div class="cmd">« ${a.txt} »</div><div class="quoi">${a.quoi}</div>`;
+  majHud();
+  montrer("ecran-niveau");
+}
+function terminer(){
+  S.enCours = false;
+  cancelAnimationFrame(S.raf);
+  $("score-final").textContent = S.score;
+  $("fin-niveau").textContent  = S.niveau;
+  $("fin-combo").textContent   = S.meilleurCombo;
+  $("fin-pierres").textContent = S.pierres;
+  montrer("ecran-fin");
+}
+
+/* --- 11. GESTION DES ÉCRANS ---------------------------------------------- */
+function montrer(id){
+  ["ecran-menu","ecran-niveau","ecran-fin"].forEach(e=>$(e).classList.add("cache"));
+  if(id) $(id).classList.remove("cache");
+}
+function nouvellePartie(){
+  Object.assign(S,{score:0,niveau:1,vies:CFG.viesDepart,combo:0,meilleurCombo:0,
+    pierres:0,bonnesCeNiveau:0,duree:CFG.chuteDepart,enCours:true,verrou:false});
+  S.paquet = melange(COMMANDEMENTS);
+  mur.innerHTML = "";
+  if(S.tuileEl){ S.tuileEl.remove(); S.tuileEl=null; }
+  majHud(); montrer(null); prochaine();
+}
+
+/* --- 12. ENTRÉES (clavier, tactile, souris) ------------------------------ */
+$("porte-pos").addEventListener("click", ()=>trier("pos"));
+$("porte-neg").addEventListener("click", ()=>trier("neg"));
+
+document.addEventListener("keydown", (e)=>{
+  if(!S.enCours) return;
+  const k = e.key.toLowerCase();
+  if(k==="arrowleft"  || k==="a"){ e.preventDefault(); pulse("porte-pos"); trier("pos"); }
+  if(k==="arrowright" || k==="d"){ e.preventDefault(); pulse("porte-neg"); trier("neg"); }
+});
+function pulse(id){ const p=$(id); p.classList.add("vise"); setTimeout(()=>p.classList.remove("vise"),120); }
+
+// glisser du doigt (swipe) sur la zone de jeu
+let xDepart=null;
+zone.addEventListener("touchstart",(e)=>{ xDepart=e.changedTouches[0].clientX; },{passive:true});
+zone.addEventListener("touchend",(e)=>{
+  if(xDepart===null || !S.enCours) return;
+  const dx = e.changedTouches[0].clientX - xDepart;
+  if(Math.abs(dx) > 30){ dx<0 ? (pulse("porte-pos"),trier("pos")) : (pulse("porte-neg"),trier("neg")); }
+  xDepart=null;
+},{passive:true});
+
+// boutons d'écran
+$("btn-start").addEventListener("click", ()=>{ initAudio(); nouvellePartie(); });
+$("btn-rejouer").addEventListener("click", nouvellePartie);
+$("btn-continuer").addEventListener("click", ()=>{ montrer(null); prochaine(); });
+$("btn-son").addEventListener("click", ()=>{ S.muet=!S.muet; $("btn-son").textContent = S.muet?"✕":"♪"; });
+
+function initAudio(){ // débloque le son au 1er geste (politique des navigateurs)
+  try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+}
+
+// pause propre si l'onglet passe en arrière-plan (le temps ne triche pas)
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && S.enCours && S.tuileEl){
+    // on recalcule le point de départ pour ne pas « sauter » au retour
+    S.debut = performance.now() - ( (S.tuileEl.offsetTop) / (zone.clientHeight) ) * S.duree;
+  }
+});
+
+majHud();
+</script>
+</body>
+</html>
