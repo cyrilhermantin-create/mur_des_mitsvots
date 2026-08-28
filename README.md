@@ -39,8 +39,8 @@ Les idées originales, le concept du jeu de tri et la sélection des commandemen
 
 ## ✍️ Auteur & crédits
 
-*   **Concepteur-auteur et donneur d'ordre :** Cyril H.
-*   **Conception des mécaniques de jeu et recherche exégétique :** Cyril H.
+*   **Concepteur-auteur et donneur d'ordre :** Cyril HERMANTIN.
+*   **Conception des mécaniques de jeu et recherche exégétique :** Cyril HERMANTIN.
 *   **Assistance au développement et à la programmation :** Claude (Anthropic)
 
 ---
